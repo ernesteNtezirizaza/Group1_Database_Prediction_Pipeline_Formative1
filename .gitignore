@@ -1,0 +1,76 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment variables
+.env
+.env.local
+
+# Model files (optional - uncomment if not tracking)
+*.pkl
+*.joblib
+*.h5
+*.model
+
+# Data files (optional - uncomment if not tracking large files)
+# *.csv
+# *.json
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Output files
+predictions_*.json
+output/
+
+# Database dumps
+*.sql.backup
+*.dump
+
+# Test files
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# MySQL
+*.sql~
+
+# MongoDB
+dump/
