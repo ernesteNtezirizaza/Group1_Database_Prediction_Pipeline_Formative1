@@ -195,3 +195,82 @@ async def delete_guest(guest_id: int, conn=Depends(get_mysql_connection)):
         return None
     finally:
         cursor.close()
+
+# =====================================================
+# HOTEL CRUD OPERATIONS
+# =====================================================
+
+@router.post("/hotels", response_model=HotelResponse, status_code=201)
+async def create_hotel(hotel: HotelCreate, conn=Depends(get_mysql_connection)):
+    """Create a new hotel"""
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "INSERT INTO hotels (hotel_name) VALUES (%s)",
+            (hotel.hotel_name,)
+        )
+        conn.commit()
+        hotel_id = cursor.lastrowid
+        return HotelResponse(hotel_id=hotel_id, **hotel.dict())
+    except pymysql.IntegrityError as e:
+        conn.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+    finally:
+        cursor.close()
+
+
+@router.get("/hotels/{hotel_id}", response_model=HotelResponse)
+async def get_hotel(hotel_id: int, conn=Depends(get_mysql_connection)):
+    """Get a specific hotel by ID"""
+    cursor = conn.cursor(pymysql.cursors.DictCursor)
+    try:
+        cursor.execute("SELECT * FROM hotels WHERE hotel_id = %s", (hotel_id,))
+        hotel = cursor.fetchone()
+        if not hotel:
+            raise HTTPException(status_code=404, detail="Hotel not found")
+        return HotelResponse(**hotel)
+    finally:
+        cursor.close()
+
+
+@router.get("/hotels", response_model=List[HotelResponse])
+async def get_all_hotels(conn=Depends(get_mysql_connection)):
+    """Get all hotels"""
+    cursor = conn.cursor(pymysql.cursors.DictCursor)
+    try:
+        cursor.execute("SELECT * FROM hotels")
+        hotels = cursor.fetchall()
+        return [HotelResponse(**h) for h in hotels]
+    finally:
+        cursor.close()
+
+
+@router.put("/hotels/{hotel_id}", response_model=HotelResponse)
+async def update_hotel(hotel_id: int, hotel: HotelCreate, conn=Depends(get_mysql_connection)):
+    """Update a hotel"""
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "UPDATE hotels SET hotel_name = %s WHERE hotel_id = %s",
+            (hotel.hotel_name, hotel_id)
+        )
+        if cursor.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Hotel not found")
+        conn.commit()
+        return HotelResponse(hotel_id=hotel_id, **hotel.dict())
+    finally:
+        cursor.close()
+
+
+@router.delete("/hotels/{hotel_id}", status_code=204)
+async def delete_hotel(hotel_id: int, conn=Depends(get_mysql_connection)):
+    """Delete a hotel"""
+    cursor = conn.cursor()
+    try:
+        cursor.execute("DELETE FROM hotels WHERE hotel_id = %s", (hotel_id,))
+        if cursor.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Hotel not found")
+        conn.commit()
+        return None
+    finally:
+        cursor.close()
