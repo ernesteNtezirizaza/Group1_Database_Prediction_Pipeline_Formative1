@@ -346,3 +346,118 @@ async def delete_hotel_mongo(hotel_id: str):
         raise
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"MongoDB error: {str(e)}")
+
+# =====================================================
+# BOOKING CRUD OPERATIONS
+# =====================================================
+
+@router.post("/bookings", status_code=201)
+async def create_booking_mongo(booking: BookingCreate):
+    """Create a new booking in MongoDB"""
+    try:
+        mongo_client.server_info()
+        booking_collection = mongo_db['bookings']
+        
+        # Get hotel and guest info from their IDs
+        hotel_collection = mongo_db['hotels']
+        guest_collection = mongo_db['guests']
+        
+        hotel = hotel_collection.find_one({"_id": ObjectId(booking.hotel_id)})
+        guest = guest_collection.find_one({"_id": ObjectId(booking.guest_id)})
+        
+        if not hotel:
+            raise HTTPException(status_code=404, detail="Hotel not found")
+        if not guest:
+            raise HTTPException(status_code=404, detail="Guest not found")
+        
+        # Create denormalized booking document
+        booking_doc = {
+            "hotel": {
+                "hotel_id": str(hotel["_id"]),
+                "hotel_name": hotel["hotel_name"]
+            },
+            "guest": {
+                "guest_id": str(guest["_id"]),
+                "country": guest["country"],
+                "is_repeated_guest": guest["is_repeated_guest"]
+            },
+            "booking_details": {
+                "lead_time": booking.lead_time,
+                "arrival_date": {
+                    "year": booking.arrival_date_year,
+                    "month": booking.arrival_date_month,
+                    "week": booking.arrival_date_week_number,
+                    "day": booking.arrival_date_day_of_month
+                },
+                "stays": {
+                    "weekend_nights": booking.stays_in_weekend_nights,
+                    "week_nights": booking.stays_in_week_nights
+                },
+                "guests": {
+                    "adults": booking.adults,
+                    "children": booking.children,
+                    "babies": booking.babies
+                },
+                "meal": booking.meal,
+                "market_segment": booking.market_segment,
+                "distribution_channel": booking.distribution_channel,
+                "room": {
+                    "reserved": booking.reserved_room_type,
+                    "assigned": booking.assigned_room_type
+                },
+                "booking_changes": booking.booking_changes,
+                "deposit_type": booking.deposit_type,
+                "agent": booking.agent,
+                "company": booking.company,
+                "days_in_waiting_list": booking.days_in_waiting_list,
+                "adr": booking.adr,
+                "required_car_parking_spaces": booking.required_car_parking_spaces,
+                "total_of_special_requests": booking.total_of_special_requests
+            },
+            "status": {
+                "is_canceled": booking.is_canceled,
+                "reservation_status": booking.reservation_status,
+                "reservation_status_date": booking.reservation_status_date
+            },
+            "history": {
+                "previous_cancellations": booking.previous_cancellations,
+                "previous_bookings_not_canceled": booking.previous_bookings_not_canceled
+            },
+            "metadata": {
+                "created_at": datetime.now().isoformat()
+            }
+        }
+        
+        result = booking_collection.insert_one(booking_doc)
+        
+        booking_doc["booking_id"] = str(result.inserted_id)
+        del booking_doc["_id"]
+        
+        return booking_doc
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"MongoDB error: {str(e)}")
+
+
+@router.get("/bookings/{booking_id}")
+async def get_booking_mongo(booking_id: str):
+    """Get a specific booking by ID from MongoDB"""
+    try:
+        mongo_client.server_info()
+        booking_collection = mongo_db['bookings']
+        
+        try:
+            booking = booking_collection.find_one({"_id": ObjectId(booking_id)})
+        except:
+            raise HTTPException(status_code=400, detail="Invalid booking ID format")
+        
+        if not booking:
+            raise HTTPException(status_code=404, detail="Booking not found")
+        booking["booking_id"] = str(booking["_id"])
+        del booking["_id"]
+        return booking
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"MongoDB error: {str(e)}")
