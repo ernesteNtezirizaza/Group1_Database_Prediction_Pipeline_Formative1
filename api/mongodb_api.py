@@ -214,3 +214,135 @@ async def delete_guest_mongo(guest_id: str):
         raise
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"MongoDB error: {str(e)}")
+
+# =====================================================
+# HOTEL CRUD OPERATIONS
+# =====================================================
+
+@router.post("/hotels", status_code=201)
+async def create_hotel_mongo(hotel: HotelCreate):
+    """Create a new hotel in MongoDB"""
+    try:
+        mongo_client.server_info()
+        hotel_collection = mongo_db['hotels']
+        
+        # Check if hotel already exists
+        existing = hotel_collection.find_one({"hotel_name": hotel.hotel_name})
+        
+        if existing:
+            return {
+                "hotel_id": str(existing["_id"]),
+                **hotel.dict(),
+                "message": "Hotel already exists"
+            }
+        
+        # Insert new hotel
+        hotel_doc = {
+            **hotel.dict(),
+            "metadata": {
+                "created_at": datetime.now().isoformat()
+            }
+        }
+        result = hotel_collection.insert_one(hotel_doc)
+        
+        return {
+            "hotel_id": str(result.inserted_id),
+            **hotel.dict()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"MongoDB error: {str(e)}")
+
+
+@router.get("/hotels/{hotel_id}")
+async def get_hotel_mongo(hotel_id: str):
+    """Get a specific hotel by ID from MongoDB"""
+    try:
+        mongo_client.server_info()
+        hotel_collection = mongo_db['hotels']
+        
+        try:
+            hotel = hotel_collection.find_one({"_id": ObjectId(hotel_id)})
+        except:
+            raise HTTPException(status_code=400, detail="Invalid hotel ID format")
+        
+        if not hotel:
+            raise HTTPException(status_code=404, detail="Hotel not found")
+        
+        hotel["hotel_id"] = str(hotel["_id"])
+        del hotel["_id"]
+        return hotel
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"MongoDB error: {str(e)}")
+
+
+@router.get("/hotels")
+async def get_all_hotels_mongo():
+    """Get all hotels from MongoDB"""
+    try:
+        mongo_client.server_info()
+        hotel_collection = mongo_db['hotels']
+        
+        hotels = hotel_collection.find()
+        
+        result = []
+        for hotel in hotels:
+            hotel["hotel_id"] = str(hotel["_id"])
+            del hotel["_id"]
+            result.append(hotel)
+        
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"MongoDB error: {str(e)}")
+
+
+@router.put("/hotels/{hotel_id}")
+async def update_hotel_mongo(hotel_id: str, hotel: HotelCreate):
+    """Update a hotel in MongoDB"""
+    try:
+        mongo_client.server_info()
+        hotel_collection = mongo_db['hotels']
+        
+        try:
+            result = hotel_collection.update_one(
+                {"_id": ObjectId(hotel_id)},
+                {"$set": hotel.dict()}
+            )
+        except:
+            raise HTTPException(status_code=400, detail="Invalid hotel ID format")
+        
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Hotel not found")
+        
+        # Return updated hotel
+        updated = hotel_collection.find_one({"_id": ObjectId(hotel_id)})
+        updated["hotel_id"] = str(updated["_id"])
+        del updated["_id"]
+        return updated
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"MongoDB error: {str(e)}")
+
+
+@router.delete("/hotels/{hotel_id}", status_code=204)
+async def delete_hotel_mongo(hotel_id: str):
+    """Delete a hotel from MongoDB"""
+    try:
+        mongo_client.server_info()
+        hotel_collection = mongo_db['hotels']
+        
+        try:
+            result = hotel_collection.delete_one({"_id": ObjectId(hotel_id)})
+        except:
+            raise HTTPException(status_code=400, detail="Invalid hotel ID format")
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Hotel not found")
+        
+        return None
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"MongoDB error: {str(e)}")
