@@ -461,3 +461,84 @@ async def get_booking_mongo(booking_id: str):
         raise
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"MongoDB error: {str(e)}")
+    
+@router.get("/bookings")
+async def get_all_bookings_mongo(skip: int = 0, limit: int = 100):
+    """Get all bookings from MongoDB with pagination"""
+    try:
+        mongo_client.server_info()
+        booking_collection = mongo_db['bookings']
+        
+        bookings = booking_collection.find().skip(skip).limit(limit)
+        
+        result = []
+        for booking in bookings:
+            booking["booking_id"] = str(booking["_id"])
+            del booking["_id"]
+            result.append(booking)
+        
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"MongoDB error: {str(e)}")
+    
+@router.put("/bookings/{booking_id}")
+async def update_booking_mongo(booking_id: str, booking_update: BookingUpdate):
+    """Update a booking in MongoDB"""
+    try:
+        mongo_client.server_info()
+        booking_collection = mongo_db['bookings']
+        
+        update_data = {}
+        if booking_update.reservation_status is not None:
+            update_data["status.reservation_status"] = booking_update.reservation_status
+        if booking_update.is_canceled is not None:
+            update_data["status.is_canceled"] = booking_update.is_canceled
+        if booking_update.booking_changes is not None:
+            update_data["booking_details.booking_changes"] = booking_update.booking_changes
+        if booking_update.adr is not None:
+            update_data["booking_details.adr"] = booking_update.adr
+        
+        if not update_data:
+            raise HTTPException(status_code=400, detail="No valid fields to update")
+        
+        try:
+            result = booking_collection.update_one(
+                {"_id": ObjectId(booking_id)},
+                {"$set": update_data}
+            )
+        except:
+            raise HTTPException(status_code=400, detail="Invalid booking ID format")
+        
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Booking not found")
+        
+        # Return updated booking
+        updated = booking_collection.find_one({"_id": ObjectId(booking_id)})
+        updated["booking_id"] = str(updated["_id"])
+        del updated["_id"]
+        return updated
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"MongoDB error: {str(e)}")
+    
+@router.delete("/bookings/{booking_id}", status_code=204)
+async def delete_booking_mongo(booking_id: str):
+    """Delete a booking from MongoDB"""
+    try:
+        mongo_client.server_info()
+        booking_collection = mongo_db['bookings']
+        
+        try:
+            result = booking_collection.delete_one({"_id": ObjectId(booking_id)})
+        except:
+            raise HTTPException(status_code=400, detail="Invalid booking ID format")
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Booking not found")
+        
+        return None
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"MongoDB error: {str(e)}")
