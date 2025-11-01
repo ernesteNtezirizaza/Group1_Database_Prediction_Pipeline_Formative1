@@ -1,0 +1,218 @@
+# Quick Start Guide
+
+## Prerequisites
+
+Before starting, ensure you have:
+- Python 3.8 or higher
+- MySQL 8.0+ installed and running
+- MongoDB 4.4+ installed and running
+
+## Installation
+
+### Step 1: Clone and Setup
+
+```bash
+# Clone the repository
+git clone <your-repo-url>
+cd ml-group-1-drafttt
+
+# Run setup script (if on Linux/Mac)
+./setup.sh
+
+# OR manually setup virtual environment
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
+
+### Step 2: Configure Database
+
+Create a `.env` file in the project root:
+
+```env
+MYSQL_HOST=localhost
+MYSQL_USER=root
+MYSQL_PASSWORD=your_password_here
+MYSQL_DATABASE=hotel_booking_db
+
+MONGO_HOST=localhost
+MONGO_PORT=27017
+MONGO_DATABASE=hotel_booking_db
+
+```
+
+### Step 3: Setup MySQL Database
+
+```bash
+mysql -u root -p < setup_mysql_database.sql
+```
+
+Or manually in MySQL:
+```sql
+source setup_mysql_database.sql;
+```
+
+### Step 4: Load Data
+
+**Load into MySQL:**
+```bash
+python load_data_mysql.py hotel_bookings.csv
+```
+
+**Load into MongoDB:**
+```bash
+python load_data_mongodb.py hotel_bookings.csv
+```
+
+### Step 5: Train ML Model
+
+```bash
+python train_model.py
+```
+
+This will create:
+- `cancellation_model.pkl`
+- `feature_preprocessor.pkl`
+- `meal_encoder.pkl`
+- `deposit_encoder.pkl`
+
+### Step 6: Start API Server
+
+```bash
+python main.py
+```
+
+Or with uvicorn:
+```bash
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
+```
+
+The API will be available at:
+- **API**: http://localhost:8000
+- **Docs**: http://localhost:8000/docs
+- **Health**: http://localhost:8000/health
+
+### Step 7: Test API
+
+Open a new terminal and run:
+```bash
+python test_api.py
+```
+
+### Step 8: Run Predictions
+
+```bash
+python prediction_script.py
+```
+
+This will:
+1. Fetch latest bookings from API
+2. Make cancellation predictions
+3. Save results to JSON file
+
+## Common Issues
+
+### Issue: "Module not found"
+**Solution**: Ensure virtual environment is activated and dependencies are installed
+```bash
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+### Issue: "Can't connect to MySQL"
+**Solution**: 
+1. Check MySQL is running: `sudo service mysql start`
+2. Verify credentials in `.env`
+3. Ensure database exists
+
+**Solution**:
+1. Check MongoDB is running: `sudo service mongod start`
+2. Verify connection string in `.env`
+
+### Issue: "No booking data"
+**Solution**: Load data first
+```bash
+python load_data_mysql.py hotel_bookings.csv
+```
+
+### Issue: "Model not found"
+**Solution**: Train the model first
+```bash
+python train_model.py
+```
+
+## Verifying Installation
+
+Run these commands to verify everything works:
+
+```bash
+# 1. Check Python version
+python --version  # Should be 3.8+
+
+# 2. Check MySQL connection
+mysql -u root -p -e "USE hotel_booking_db; SHOW TABLES;"
+
+# 3. Check MongoDB connection
+mongosh --eval "db.stats()"
+
+# 4. Check API is running
+curl http://localhost:8000/health
+
+# 5. Run all tests
+python test_api.py
+```
+
+## Next Steps
+
+1. Explore API documentation: http://localhost:8000/docs
+2. Try different endpoints
+3. Run predictions on new data
+4. Analyze prediction results
+5. Review `README.md` for detailed documentation
+
+## Project Structure
+
+```
+ml-group-1-drafttt/
+├── hotel_bookings.csv          # Dataset
+├── requirements.txt             # Dependencies
+├── README.md                    # Full documentation
+├── QUICKSTART.md               # This file
+├── PROJECT_CHECKLIST.md         # Checklist
+│
+├── Database/
+│   ├── setup_mysql_database.sql    # MySQL schema
+│   ├── load_data_mysql.py          # MySQL loader
+│   └── load_data_mongodb.py        # MongoDB loader
+│
+├── API/
+│   └── main.py                     # FastAPI app
+│
+├── ML/
+│   ├── train_model.py              # Model training
+│   └── prediction_script.py        # Predictions
+│
+└── Tests/
+    └── test_api.py                 # API tests
+```
+
+## Getting Help
+
+1. Check `README.md` for detailed documentation
+2. Check `PROJECT_CHECKLIST.md` for requirements
+3. Review API docs at http://localhost:8000/docs
+4. Contact team members
+
+## Key Files
+
+| File                       | Purpose                                |
+| -------------------------- | -------------------------------------- |
+| `main.py`                  | FastAPI application with all endpoints |
+| `setup_mysql_database.sql` | Database schema and setup              |
+| `train_model.py`           | Train ML model                         |
+| `prediction_script.py`     | Make predictions                       |
+| `test_api.py`              | Test all endpoints                     |
+| `README.md`                | Complete documentation                 |
+
+---
+
+**Ready to use!** 
