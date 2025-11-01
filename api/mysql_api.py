@@ -274,3 +274,209 @@ async def delete_hotel(hotel_id: int, conn=Depends(get_mysql_connection)):
         return None
     finally:
         cursor.close()
+
+# =====================================================
+# BOOKING CRUD OPERATIONS
+# =====================================================
+
+@router.post("/bookings", response_model=BookingResponse, status_code=201)
+async def create_booking(booking: BookingCreate, conn=Depends(get_mysql_connection)):
+    """Create a new booking"""
+    cursor = conn.cursor()
+    try:
+        # Validate booking using stored procedure
+        cursor.execute(
+            "CALL sp_validate_booking(%s, %s, %s, @is_valid, @error_message)",
+            (booking.lead_time, booking.adults, booking.reservation_status)
+        )
+        cursor.execute("SELECT @is_valid, @error_message")
+        result = cursor.fetchone()
+        
+        if not result or not result[0]:
+            raise HTTPException(status_code=400, detail=result[1] if result else "Validation failed")
+        
+        # Insert booking
+        insert_query = """
+            INSERT INTO bookings (
+                hotel_id, guest_id, lead_time, arrival_date_year, arrival_date_month,
+                arrival_date_week_number, arrival_date_day_of_month, stays_in_weekend_nights,
+                stays_in_week_nights, adults, children, babies, meal, market_segment,
+                distribution_channel, previous_cancellations, previous_bookings_not_canceled,
+                reserved_room_type, assigned_room_type, booking_changes, deposit_type,
+                agent, company, days_in_waiting_list, adr, required_car_parking_spaces,
+                total_of_special_requests, is_canceled, reservation_status, reservation_status_date
+            ) VALUES (
+                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+            )
+        """
+        
+        values = (
+            booking.hotel_id, booking.guest_id, booking.lead_time, booking.arrival_date_year,
+            booking.arrival_date_month, booking.arrival_date_week_number, booking.arrival_date_day_of_month,
+            booking.stays_in_weekend_nights, booking.stays_in_week_nights, booking.adults, booking.children,
+            booking.babies, booking.meal, booking.market_segment, booking.distribution_channel,
+            booking.previous_cancellations, booking.previous_bookings_not_canceled, booking.reserved_room_type,
+            booking.assigned_room_type, booking.booking_changes, booking.deposit_type, booking.agent,
+            booking.company, booking.days_in_waiting_list, booking.adr, booking.required_car_parking_spaces,
+            booking.total_of_special_requests, booking.is_canceled, booking.reservation_status,
+            booking.reservation_status_date
+        )
+        
+        cursor.execute(insert_query, values)
+        conn.commit()
+        booking_id = cursor.lastrowid
+        
+        # Get created booking
+        cursor.execute(
+            "SELECT * FROM bookings WHERE booking_id = %s",
+            (booking_id,)
+        )
+        created_booking = cursor.fetchone()
+        
+        return BookingResponse(**created_booking)
+    except pymysql.IntegrityError as e:
+        conn.rollback()
+        raise HTTPException(status_code=400, detail=f"Database constraint error: {str(e)}")
+    finally:
+        cursor.close()
+
+
+@router.get("/bookings/{booking_id}", response_model=BookingResponse)
+async def get_booking(booking_id: int, conn=Depends(get_mysql_connection)):
+    """Get a specific booking by ID"""
+    cursor = conn.cursor(pymysql.cursors.DictCursor)
+    try:
+        cursor.execute(
+            "SELECT * FROM bookings WHERE booking_id = %s",
+            (booking_id,)
+        )
+        booking = cursor.fetchone()
+        if not booking:
+            raise HTTPException(status_code=404, detail="Booking not found")
+        return BookingResponse(**booking)
+    finally:
+        cursor.close()
+
+
+@router.get("/bookings", response_model=List[BookingResponse])
+async def get_all_bookings(skip: int = 0, limit: int = 100, 
+                           is_canceled: Optional[bool] = None,
+                           conn=Depends(get_mysql_connection)):
+    """Get all bookings with pagination and optional filtering"""
+    cursor = conn.cursor(pymysql.cursors.DictCursor)
+    try:
+        if is_canceled is not None:
+            cursor.execute(
+                "SELECT * FROM bookings WHERE is_canceled = %s LIMIT %s OFFSET %s",
+                (is_canceled, limit, skip)
+            )
+        else:
+            cursor.execute(
+                "SELECT * FROM bookings LIMIT %s OFFSET %s",
+                (limit, skip)
+            )
+        bookings = cursor.fetchall()
+        return [BookingResponse(**b) for b in bookings]
+    finally:
+        cursor.close()
+
+
+@router.put("/bookings/{booking_id}", response_model=BookingResponse)
+async def update_booking(booking_id: int, booking_update: BookingUpdate, 
+                        conn=Depends(get_mysql_connection)):
+    """Update a booking (only allowed fields)"""
+    cursor = conn.cursor(pymysql.cursors.DictCursor)
+    try:
+        # Build update query dynamically
+        updates = []
+        values = []
+        
+        if booking_update.reservation_status is not None:
+            updates.append("reservation_status = %s")
+            values.append(booking_update.reservation_status)
+        
+        if booking_update.is_canceled is not None:
+            updates.append("is_canceled = %s")
+            values.append(booking_update.is_canceled)
+        
+        if booking_update.booking_changes is not None:
+            updates.append("booking_changes = %s")
+            values.append(booking_update.booking_changes)
+        
+        if booking_update.adr is not None:
+            updates.append("adr = %s")
+            values.append(booking_update.adr)
+        
+        if not updates:
+            raise HTTPException(status_code=400, detail="No fields to update")
+        
+        values.append(booking_id)
+        update_query = f"UPDATE bookings SET {', '.join(updates)} WHERE booking_id = %s"
+        
+        cursor.execute(update_query, values)
+        conn.commit()
+        
+        if cursor.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Booking not found")
+        
+        # Get updated booking
+        cursor.execute(
+            "SELECT * FROM bookings WHERE booking_id = %s",
+            (booking_id,)
+        )
+        booking = cursor.fetchone()
+        return BookingResponse(**booking)
+    finally:
+        cursor.close()
+
+
+@router.delete("/bookings/{booking_id}", status_code=204)
+async def delete_booking(booking_id: int, conn=Depends(get_mysql_connection)):
+    """Delete a booking"""
+    cursor = conn.cursor()
+    try:
+        cursor.execute("DELETE FROM bookings WHERE booking_id = %s", (booking_id,))
+        if cursor.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Booking not found")
+        conn.commit()
+        return None
+    finally:
+        cursor.close()
+
+
+# =====================================================
+# STATISTICS ENDPOINTS
+# =====================================================
+
+@router.get("/statistics")
+async def get_statistics(conn=Depends(get_mysql_connection)):
+    """Get booking statistics using stored procedure"""
+    cursor = conn.cursor(pymysql.cursors.DictCursor)
+    try:
+        cursor.execute(
+            "CALL sp_get_booking_statistics(@total, @cancellation_rate, @avg_adr, @country)"
+        )
+        cursor.execute(
+            "SELECT @total as total_bookings, @cancellation_rate as cancellation_rate, "
+            "@avg_adr as avg_adr, @country as most_common_country"
+        )
+        stats = cursor.fetchone()
+        return stats
+    finally:
+        cursor.close()
+
+
+@router.get("/bookings/logs")
+async def get_booking_logs(skip: int = 0, limit: int = 100, conn=Depends(get_mysql_connection)):
+    """Get booking change logs from triggers"""
+    cursor = conn.cursor(pymysql.cursors.DictCursor)
+    try:
+        cursor.execute(
+            "SELECT * FROM booking_logs ORDER BY timestamp DESC LIMIT %s OFFSET %s",
+            (limit, skip)
+        )
+        logs = cursor.fetchall()
+        return logs
+    finally:
+        cursor.close()
