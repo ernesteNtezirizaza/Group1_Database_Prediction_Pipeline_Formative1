@@ -117,4 +117,51 @@ class BookingPredictor:
         feature_array = np.nan_to_num(feature_array, nan=0.0, posinf=0.0, neginf=0.0)
         
         return feature_array
+    
+    def predict(self, booking: Dict) -> Dict:
+        """
+        Make prediction on a single booking
+        """
+        try:
+            # Prepare features
+            features = self.prepare_features(booking)
+            
+            # Preprocess if preprocessor exists
+            if self.preprocessor:
+                try:
+                    features = self.preprocessor.transform(features)
+                except:
+                    # If preprocessing fails, use original features
+                    pass
+            
+            # Make prediction
+            if self.model:
+                prediction = self.model.predict(features)[0]
+                probability = self.model.predict_proba(features)[0]
+                
+                return {
+                    'booking_id': booking.get('booking_id'),
+                    'predicted_canceled': bool(prediction),
+                    'cancellation_probability': float(max(probability)),
+                    'not_cancelled_probability': float(min(probability)),
+                    'features_used': len(features[0]),
+                    'timestamp': datetime.now().isoformat()
+                }
+            else:
+                # Return dummy prediction if no model
+                return {
+                    'booking_id': booking.get('booking_id'),
+                    'predicted_canceled': False,
+                    'cancellation_probability': 0.3,
+                    'not_cancelled_probability': 0.7,
+                    'features_used': len(features[0]),
+                    'timestamp': datetime.now().isoformat(),
+                    'note': 'Dummy prediction - no trained model available'
+                }
+        except Exception as e:
+            print(f"Error making prediction: {e}")
+            return {
+                'booking_id': booking.get('booking_id'),
+                'error': str(e)
+            }
 
