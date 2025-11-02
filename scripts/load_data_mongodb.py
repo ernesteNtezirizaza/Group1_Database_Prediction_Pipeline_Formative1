@@ -7,12 +7,18 @@ import csv
 from pymongo import MongoClient
 from typing import Dict
 import sys
+import os
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # MongoDB configuration
 MONGO_CONFIG = {
-    'host': 'localhost',
-    'port': 27017,
-    'database': 'hotel_booking_db'
+    'host': os.getenv('MONGO_HOST'),
+    'port': os.getenv('MONGO_PORT'),
+    'database': os.getenv('MONGO_DATABASE')
 }
 
 

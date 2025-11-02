@@ -7,13 +7,17 @@ import csv
 import pymysql
 from typing import Dict, Set
 import sys
+import os
+from dotenv import load_dotenv
 
-# Database configuration
+# Load environment variables from .env file
+load_dotenv()
+
 DB_CONFIG = {
-    'host': 'localhost',
-    'user': 'root',
-    'password': 'abizeramac',  # Update with your MySQL password
-    'database': 'hotel_booking_db',
+    'host': os.getenv('MYSQL_HOST'),
+    'user': os.getenv('MYSQL_USER'),
+    'password': os.getenv('MYSQL_PASSWORD'),
+    'database': os.getenv('MYSQL_DATABASE'),
     'charset': 'utf8mb4',
     'autocommit': False
 }

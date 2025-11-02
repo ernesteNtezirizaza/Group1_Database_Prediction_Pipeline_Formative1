@@ -29,14 +29,14 @@ pip install -r requirements.txt
 Create a `.env` file in the project root:
 
 ```env
-MYSQL_HOST=localhost
-MYSQL_USER=root
+MYSQL_HOST=your_host_here
+MYSQL_USER=your_user_here
 MYSQL_PASSWORD=your_password_here
-MYSQL_DATABASE=hotel_booking_db
+MYSQL_DATABASE=your_database_here
 
-MONGO_HOST=localhost
-MONGO_PORT=27017
-MONGO_DATABASE=hotel_booking_db
+MONGO_HOST=your_host_here
+MONGO_PORT=your_port_here
+MONGO_DATABASE=your_database_here
 
 ```
 

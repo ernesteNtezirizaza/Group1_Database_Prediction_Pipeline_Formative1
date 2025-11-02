@@ -15,7 +15,7 @@ NC='\033[0m' # No Color
 
 # Check if Python 3 is installed
 echo -e "${YELLOW}Checking Python installation...${NC}"
-if command -v python3 &> /dev/null; then
+if command -v python &> /dev/null; then
     PYTHON_VERSION=$(python3 --version)
     echo -e "${GREEN}Found: $PYTHON_VERSION${NC}"
 else
@@ -81,15 +81,15 @@ if [ ! -f ".env" ]; then
     echo -e "${YELLOW}Creating .env file from template...${NC}"
     cat > .env << EOL
 # MySQL Configuration
-MYSQL_HOST=localhost
-MYSQL_USER=root
-MYSQL_PASSWORD=
-MYSQL_DATABASE=hotel_booking_db
+MYSQL_HOST=your_host_here
+MYSQL_USER=your_user_here
+MYSQL_PASSWORD=your_password_here
+MYSQL_DATABASE=your_database_here
 
 # MongoDB Configuration
-MONGO_HOST=localhost
-MONGO_PORT=27017
-MONGO_DATABASE=hotel_booking_db
+MONGO_HOST=your_host_here
+MONGO_PORT=your_port_here
+MONGO_DATABASE=your_database_here
 
 # API Configuration
 API_BASE_URL=http://localhost:8000
@@ -108,8 +108,8 @@ echo ""
 echo "Next steps:"
 echo "1. Update .env file with your database credentials"
 echo "2. Setup MySQL database: mysql -u root -p < setup_mysql_database.sql"
-echo "3. Load data into MySQL: python load_data_mysql.py hotel_bookings.csv"
-echo "4. Load data into MongoDB: python load_data_mongodb.py hotel_bookings.csv"
+echo "3. Load data into MySQL: python scripts/load_data_mysql.py hotel_bookings.csv"
+echo "4. Load data into MongoDB: python scripts/load_data_mongodb.py hotel_bookings.csv"
 echo "5. Train ML model: python train_model.py"
 echo "6. Start API server: python main.py"
 echo ""
