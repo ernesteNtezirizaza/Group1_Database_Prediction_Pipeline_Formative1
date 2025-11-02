@@ -210,3 +210,118 @@ class BookingPredictor:
         
         print(f"\nPredictions saved to {filename}")
 
+
+def train_model_from_api_data(api_url: str = API_BASE_URL, output_path: str = MODEL_PATH):
+    """
+    Train a model using data from the API
+    This function would be called to create the initial model
+    """
+    try:
+        print("\nFetching training data from API...")
+        response = requests.get(f"{api_url}/api/v1/bookings", params={"limit": 1000})
+        response.raise_for_status()
+        bookings = response.json()
+        
+        if len(bookings) == 0:
+            print("No booking data available for training")
+            return
+        
+        # Convert to DataFrame
+        df = pd.DataFrame(bookings)
+        
+        # Prepare features and target
+        predictor = BookingPredictor(api_url)
+        
+        X = []
+        y = []
+        for booking in bookings:
+            try:
+                features = predictor.prepare_features(booking)
+                X.append(features[0])
+                y.append(booking.get('is_canceled', False))
+            except:
+                continue
+        
+        if len(X) == 0:
+            print("Could not prepare features for training")
+            return
+        
+        X = np.array(X)
+        y = np.array(y)
+        
+        # Train model
+        print("\nTraining model...")
+        from sklearn.ensemble import RandomForestClassifier
+        from sklearn.preprocessing import StandardScaler
+        from sklearn.pipeline import Pipeline
+        
+        model = Pipeline([
+            ('scaler', StandardScaler()),
+            ('classifier', RandomForestClassifier(n_estimators=100, random_state=42, max_depth=10))
+        ])
+        
+        model.fit(X, y)
+        
+        # Save model
+        joblib.dump(model, output_path)
+        print(f"\nModel trained and saved to {output_path}")
+        
+        # Evaluate
+        score = model.score(X, y)
+        print(f"Model accuracy on training data: {score:.2%}")
+        
+    except Exception as e:
+        print(f"Error training model: {e}")
+
+
+def main():
+    """
+    Main function to run predictions
+    """
+    print("=" * 60)
+    print("Hotel Booking Cancellation Prediction System")
+    print("=" * 60)
+    
+    # Initialize predictor
+    predictor = BookingPredictor()
+    
+    # Option 1: Train model if needed
+    if not os.path.exists(MODEL_PATH):
+        print("\nNo trained model found. Would you like to train one? (y/n)")
+        # For automated execution, skip training
+        # train_model_from_api_data()
+        print("Skipping training for demo purposes")
+    
+    # Fetch latest bookings
+    print("\nFetching latest bookings from API...")
+    bookings = predictor.fetch_latest_bookings(limit=10)
+    
+    if not bookings:
+        print("No bookings found. Please ensure the API is running and has data.")
+        return
+    
+    # Make predictions
+    print(f"\nMaking predictions for {len(bookings)} bookings...")
+    predictions = predictor.batch_predict(bookings)
+    
+    # Display summary
+    print("\n" + "=" * 60)
+    print("Prediction Summary")
+    print("=" * 60)
+    
+    total_cancellations = sum(1 for p in predictions if p.get('predicted_canceled'))
+    avg_probability = np.mean([p.get('cancellation_probability', 0) for p in predictions])
+    
+    print(f"Total bookings analyzed: {len(predictions)}")
+    print(f"Predicted cancellations: {total_cancellations}")
+    print(f"Average cancellation probability: {avg_probability:.2%}")
+    
+    # Save predictions
+    predictor.save_predictions(predictions)
+    
+    print("\nPrediction process completed!")
+    print("=" * 60)
+
+
+if __name__ == "__main__":
+    main()
