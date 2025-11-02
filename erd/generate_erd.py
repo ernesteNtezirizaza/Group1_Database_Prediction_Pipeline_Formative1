@@ -3,6 +3,8 @@ Generate ERD Diagram using matplotlib
 Creates a visual entity-relationship diagram
 """
 
+import os
+
 try:
     import matplotlib.pyplot as plt
     import matplotlib.patches as patches
@@ -10,9 +12,9 @@ try:
     
     def create_erd():
         """Create ERD diagram"""
-        fig, ax = plt.subplots(1, 1, figsize=(16, 12))
+        fig, ax = plt.subplots(1, 1, figsize=(18, 14))
         ax.set_xlim(0, 20)
-        ax.set_ylim(0, 15)
+        ax.set_ylim(0, 16)
         ax.axis('off')
         
         # Title
@@ -119,6 +121,37 @@ try:
                '1:N', ha='center', va='center',
                bbox=dict(boxstyle='round', facecolor='white', edgecolor='black'))
         
+        # Table 5: predictions (Below booking_logs)
+        x5, y5 = 15, 1
+        width5, height5 = 3.5, 3.5
+        table_box5 = FancyBboxPatch((x5, y5), width5, height5,
+                                    boxstyle="round,pad=0.1", 
+                                    edgecolor='black', facecolor='plum', linewidth=2)
+        ax.add_patch(table_box5)
+        
+        ax.text(x5 + width5/2, y5 + height5 - 0.3, 'predictions', 
+                ha='center', va='center', fontsize=14, fontweight='bold')
+        ax.plot([x5, x5 + width5], [y5 + height5 - 0.6, y5 + height5 - 0.6], 
+                'k-', linewidth=2)
+        
+        fields5 = [
+            'PK prediction_id', 'FK booking_id',
+            'predicted_canceled', 'cancellation_prob',
+            'not_cancelled_prob', 'features_used',
+            'model_version', 'prediction_timestamp',
+            'notes'
+        ]
+        for i, field in enumerate(fields5):
+            ax.text(x5 + 0.2, y5 + height5 - 1.0 - i*0.35, field, 
+                   ha='left', va='center', fontsize=8.5, family='monospace')
+        
+        # Arrows: bookings → predictions
+        ax.annotate('', xy=(x5, y5 + height5), xytext=(x3 + width3/2, y3),
+                   arrowprops=dict(arrowstyle='->', lw=2, color='purple'))
+        ax.text((x3 + width3/2 + x5)/2, (y3 + y5 + height5)/2, 
+               '1:N', ha='center', va='center',
+               bbox=dict(boxstyle='round', facecolor='white', edgecolor='purple'))
+        
         # Legend
         legend_y = 1.5
         ax.text(2, legend_y, 'Legend:', fontsize=11, fontweight='bold')
@@ -134,6 +167,10 @@ try:
                                     facecolor='lightgreen', edgecolor='black'))
         ax.text(2, legend_y - 1.3, 'Log/Audit Tables', ha='left', va='center', fontsize=9)
         
+        ax.add_patch(FancyBboxPatch((1.5, legend_y - 1.9), 0.3, 0.2,
+                                    facecolor='plum', edgecolor='black'))
+        ax.text(2, legend_y - 1.8, 'ML/Analytics Tables', ha='left', va='center', fontsize=9)
+        
         ax.text(10, legend_y - 0.8, 'PK = Primary Key  |  FK = Foreign Key', 
                 ha='center', va='center', fontsize=10, style='italic')
         
@@ -142,8 +179,11 @@ try:
                 ha='center', va='center', fontsize=9, style='italic')
         
         plt.tight_layout()
-        plt.savefig('ERD_Diagram.png', dpi=300, bbox_inches='tight')
-        print("ERD diagram saved as 'ERD_Diagram.png'")
+        # Save in the erd directory
+        output_path = os.path.join('erd', 'ERD_Diagram.png')
+        os.makedirs('erd', exist_ok=True)
+        plt.savefig(output_path, dpi=300, bbox_inches='tight')
+        print(f"ERD diagram saved as '{output_path}'")
         
         plt.close()
         

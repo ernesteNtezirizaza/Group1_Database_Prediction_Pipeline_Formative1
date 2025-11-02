@@ -85,6 +85,23 @@ CREATE TABLE booking_logs (
     INDEX idx_timestamp (timestamp)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- Table 5: predictions
+CREATE TABLE predictions (
+    prediction_id INT AUTO_INCREMENT PRIMARY KEY,
+    booking_id INT NOT NULL,
+    predicted_canceled BOOLEAN NOT NULL,
+    cancellation_probability DECIMAL(5, 4) NOT NULL,
+    not_cancelled_probability DECIMAL(5, 4) NOT NULL,
+    features_used INT DEFAULT 0,
+    model_version VARCHAR(50) NULL,
+    prediction_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    notes TEXT NULL,
+    FOREIGN KEY (booking_id) REFERENCES bookings(booking_id) ON DELETE CASCADE,
+    INDEX idx_booking_id (booking_id),
+    INDEX idx_predicted_canceled (predicted_canceled),
+    INDEX idx_prediction_timestamp (prediction_timestamp)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- =====================================================
 -- STORED PROCEDURES
 -- =====================================================
@@ -254,4 +271,6 @@ SELECT 'Guests', COUNT(*) FROM guests
 UNION ALL
 SELECT 'Bookings', COUNT(*) FROM bookings
 UNION ALL
-SELECT 'Booking Logs', COUNT(*) FROM booking_logs;
+SELECT 'Booking Logs', COUNT(*) FROM booking_logs
+UNION ALL
+SELECT 'Predictions', COUNT(*) FROM predictions;

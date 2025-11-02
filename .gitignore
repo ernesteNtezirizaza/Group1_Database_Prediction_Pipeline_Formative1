@@ -36,7 +36,7 @@ env/
 .env.local
 
 # Model files (optional - uncomment if not tracking)
-*.pkl
+# *.pkl
 *.joblib
 *.h5
 *.model

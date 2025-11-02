@@ -20,7 +20,7 @@ DB_CONFIG = {
     'database': os.getenv('MYSQL_DATABASE'),
     'port': int(os.getenv('MYSQL_PORT')),
     'charset': 'utf8mb4',
-    'autocommit': False
+    'autocommit': True  # Auto-commit each insert immediately, no rollbacks
 }
 
 
@@ -84,10 +84,10 @@ def get_or_create_guest(cursor, country: str, is_repeated_guest: str,
     return guest_id
 
 
-def load_bookings_data(file_path: str, batch_size: int = 1000):
+def load_bookings_data(file_path: str):
     """
     Load bookings data from CSV into MySQL database
-    Uses batch processing for efficiency
+    Each insert is committed immediately - no rollbacks
     """
     connection = None
     
@@ -100,7 +100,6 @@ def load_bookings_data(file_path: str, batch_size: int = 1000):
         
         hotel_map = {}
         guest_map = {}
-        batch_count = 0
         total_inserted = 0
         
         # Read CSV file
@@ -172,30 +171,20 @@ def load_bookings_data(file_path: str, batch_size: int = 1000):
                         clean_value(row['reservation_status_date'])
                     )
                     
-                    print(f"Booking values: {booking_values}")
+                    # Insert booking - commits immediately with autocommit=True
                     cursor.execute(insert_query, booking_values)
-                    batch_count += 1
                     total_inserted += 1
                     
-                    print(f"Insert query: {insert_query}")
-                    
-                    # Commit in batches
-                    if batch_count >= batch_size:
-                        connection.commit()
+                    # Progress update every 1000 records
+                    if total_inserted % 1000 == 0:
                         print(f"Inserted {total_inserted} records so far...")
-                        batch_count = 0
-                    print(f"Batch count: {batch_count}")
                         
                 except Exception as e:
+                    # Log error but continue - no rollback, data already committed
                     print(f"Error processing row {row_num}: {e}")
-                    connection.rollback()
                     continue
             
-            # Final commit
-            if batch_count > 0:
-                connection.commit()
-        
-        print(f"\nData loading completed!")
+        print("\nData loading completed!")
         print(f"Total bookings inserted: {total_inserted}")
         
         # Display statistics
@@ -210,14 +199,12 @@ def load_bookings_data(file_path: str, batch_size: int = 1000):
         
     except pymysql.Error as e:
         print(f"Database error: {e}")
-        if connection:
-            connection.rollback()
+        print("Note: All successfully inserted records are already committed (no rollback)")
         sys.exit(1)
         
     except Exception as e:
         print(f"Error: {e}")
-        if connection:
-            connection.rollback()
+        print("Note: All successfully inserted records are already committed (no rollback)")
         sys.exit(1)
         
     finally:

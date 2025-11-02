@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
 from typing import Optional, List
 import pymysql
-from datetime import datetime
+from datetime import datetime, date
 import os
 
 router = APIRouter()
@@ -19,6 +19,14 @@ MYSQL_CONFIG = {
     'database': os.getenv('MYSQL_DATABASE'),
     'charset': 'utf8mb4'
 }
+
+# Add port if provided
+if os.getenv('MYSQL_PORT'):
+    MYSQL_CONFIG['port'] = int(os.getenv('MYSQL_PORT'))
+
+# Add SSL configuration if SSL is required (for cloud databases like Aiven)
+if os.getenv('MYSQL_SSL', '').lower() == 'true':
+    MYSQL_CONFIG['ssl'] = {'check_hostname': False}
 
 # =====================================================
 # PYDANTIC MODELS
@@ -100,13 +108,35 @@ class BookingResponse(BookingCreate):
 # DATABASE DEPENDENCIES
 # =====================================================
 
+def convert_booking_dict(booking_dict: dict) -> dict:
+    """Convert date/datetime objects to strings for Pydantic validation"""
+    if not booking_dict:
+        return booking_dict
+    
+    # Convert reservation_status_date (DATE field) to string
+    if ('reservation_status_date' in booking_dict and 
+        booking_dict['reservation_status_date'] is not None and
+        isinstance(booking_dict['reservation_status_date'], (date, datetime))):
+        booking_dict['reservation_status_date'] = str(booking_dict['reservation_status_date'])
+    
+    # Convert created_at (TIMESTAMP/DATETIME field) to ISO string
+    if ('created_at' in booking_dict and 
+        booking_dict['created_at'] is not None and
+        isinstance(booking_dict['created_at'], (date, datetime))):
+        booking_dict['created_at'] = booking_dict['created_at'].isoformat()
+    
+    return booking_dict
+
+
 def get_mysql_connection():
     """Dependency to get MySQL connection"""
+    connection = None
     try:
         connection = pymysql.connect(**MYSQL_CONFIG)
         yield connection
     finally:
-        connection.close()
+        if connection:
+            connection.close()
 
 
 # =====================================================
@@ -333,11 +363,27 @@ async def create_booking(booking: BookingCreate, conn=Depends(get_mysql_connecti
             (booking_id,)
         )
         created_booking = cursor.fetchone()
+        created_booking = convert_booking_dict(created_booking)
         
         return BookingResponse(**created_booking)
     except pymysql.IntegrityError as e:
         conn.rollback()
         raise HTTPException(status_code=400, detail=f"Database constraint error: {str(e)}")
+    finally:
+        cursor.close()
+
+
+@router.get("/bookings/logs")
+async def get_booking_logs(skip: int = 0, limit: int = 100, conn=Depends(get_mysql_connection)):
+    """Get booking change logs from triggers"""
+    cursor = conn.cursor(pymysql.cursors.DictCursor)
+    try:
+        cursor.execute(
+            "SELECT * FROM booking_logs ORDER BY timestamp DESC LIMIT %s OFFSET %s",
+            (limit, skip)
+        )
+        logs = cursor.fetchall()
+        return logs
     finally:
         cursor.close()
 
@@ -354,6 +400,7 @@ async def get_booking(booking_id: int, conn=Depends(get_mysql_connection)):
         booking = cursor.fetchone()
         if not booking:
             raise HTTPException(status_code=404, detail="Booking not found")
+        booking = convert_booking_dict(booking)
         return BookingResponse(**booking)
     finally:
         cursor.close()
@@ -377,6 +424,8 @@ async def get_all_bookings(skip: int = 0, limit: int = 100,
                 (limit, skip)
             )
         bookings = cursor.fetchall()
+        # Convert date objects to strings for all bookings
+        bookings = [convert_booking_dict(b) for b in bookings]
         return [BookingResponse(**b) for b in bookings]
     finally:
         cursor.close()
@@ -426,6 +475,7 @@ async def update_booking(booking_id: int, booking_update: BookingUpdate,
             (booking_id,)
         )
         booking = cursor.fetchone()
+        booking = convert_booking_dict(booking)
         return BookingResponse(**booking)
     finally:
         cursor.close()
@@ -467,16 +517,96 @@ async def get_statistics(conn=Depends(get_mysql_connection)):
         cursor.close()
 
 
-@router.get("/bookings/logs")
-async def get_booking_logs(skip: int = 0, limit: int = 100, conn=Depends(get_mysql_connection)):
-    """Get booking change logs from triggers"""
+# =====================================================
+# PREDICTION LOGS ENDPOINTS
+# =====================================================
+
+@router.get("/predictions/logs")
+async def get_prediction_logs(skip: int = 0, limit: int = 100, 
+                               booking_id: Optional[int] = None,
+                               predicted_canceled: Optional[bool] = None,
+                               conn=Depends(get_mysql_connection)):
+    """Get prediction logs with optional filtering"""
+    cursor = conn.cursor(pymysql.cursors.DictCursor)
+    try:
+        # Build query dynamically based on filters
+        where_clauses = []
+        params = []
+        
+        if booking_id is not None:
+            where_clauses.append("booking_id = %s")
+            params.append(booking_id)
+        
+        if predicted_canceled is not None:
+            where_clauses.append("predicted_canceled = %s")
+            params.append(predicted_canceled)
+        
+        where_sql = ""
+        if where_clauses:
+            where_sql = "WHERE " + " AND ".join(where_clauses)
+        
+        query = f"""
+            SELECT * FROM predictions 
+            {where_sql}
+            ORDER BY prediction_timestamp DESC 
+            LIMIT %s OFFSET %s
+        """
+        
+        params.extend([limit, skip])
+        cursor.execute(query, params)
+        predictions = cursor.fetchall()
+        
+        # Convert timestamp to ISO string
+        for pred in predictions:
+            if pred.get('prediction_timestamp'):
+                if isinstance(pred['prediction_timestamp'], (datetime, date)):
+                    pred['prediction_timestamp'] = pred['prediction_timestamp'].isoformat()
+        
+        return predictions
+    finally:
+        cursor.close()
+
+
+@router.get("/predictions/logs/{prediction_id}")
+async def get_prediction_log(prediction_id: int, conn=Depends(get_mysql_connection)):
+    """Get a specific prediction log by ID"""
     cursor = conn.cursor(pymysql.cursors.DictCursor)
     try:
         cursor.execute(
-            "SELECT * FROM booking_logs ORDER BY timestamp DESC LIMIT %s OFFSET %s",
-            (limit, skip)
+            "SELECT * FROM predictions WHERE prediction_id = %s",
+            (prediction_id,)
         )
-        logs = cursor.fetchall()
-        return logs
+        prediction = cursor.fetchone()
+        if not prediction:
+            raise HTTPException(status_code=404, detail="Prediction not found")
+        
+        # Convert timestamp to ISO string
+        if prediction.get('prediction_timestamp'):
+            if isinstance(prediction['prediction_timestamp'], (datetime, date)):
+                prediction['prediction_timestamp'] = prediction['prediction_timestamp'].isoformat()
+        
+        return prediction
+    finally:
+        cursor.close()
+
+
+@router.get("/bookings/{booking_id}/predictions")
+async def get_booking_predictions(booking_id: int, conn=Depends(get_mysql_connection)):
+    """Get all predictions for a specific booking"""
+    cursor = conn.cursor(pymysql.cursors.DictCursor)
+    try:
+        cursor.execute(
+            "SELECT * FROM predictions WHERE booking_id = %s ORDER BY prediction_timestamp DESC",
+            (booking_id,)
+        )
+        predictions = cursor.fetchall()
+        
+        # Convert timestamps to ISO strings
+        for pred in predictions:
+            if pred.get('prediction_timestamp'):
+                if isinstance(pred['prediction_timestamp'], (datetime, date)):
+                    pred['prediction_timestamp'] = pred['prediction_timestamp'].isoformat()
+        
+        return predictions
     finally:
         cursor.close()

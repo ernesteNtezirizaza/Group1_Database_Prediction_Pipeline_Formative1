@@ -11,13 +11,19 @@ from typing import Dict, List, Optional
 import json
 from datetime import datetime
 import os
+import pymysql
+from pymongo import MongoClient
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # API Configuration
 API_BASE_URL = os.getenv('API_BASE_URL', 'http://localhost:8000')
 
 # Model configuration
-MODEL_PATH = 'cancellation_model.pkl'
-PREPROCESSOR_PATH = 'feature_preprocessor.pkl'
+MODEL_PATH = 'models/cancellation_model.pkl'
+PREPROCESSOR_PATH = 'models/feature_preprocessor.pkl'
 
 
 class BookingPredictor:
@@ -167,14 +173,14 @@ class BookingPredictor:
     
     def log_prediction_to_db(self, booking_id: int, prediction: Dict):
         """
-        Log prediction result to database
-        This would typically update a predictions table in the database
+        Log prediction result to both MySQL and MongoDB databases
         """
         try:
-            # In a real implementation, you would:
-            # 1. Create a predictions table in the database
-            # 2. Insert the prediction result
-            # For now, we'll just print the result
+            # Log to MySQL
+            self._log_to_mysql(booking_id, prediction)
+            
+            # Log to MongoDB
+            self._log_to_mongodb(booking_id, prediction)
             
             print(f"\nPrediction logged for booking {booking_id}:")
             print(f"  Cancellation probability: {prediction.get('cancellation_probability', 0):.2%}")
@@ -182,6 +188,95 @@ class BookingPredictor:
             
         except Exception as e:
             print(f"Error logging prediction: {e}")
+    
+    def _log_to_mysql(self, booking_id: int, prediction: Dict):
+        """Save prediction to MySQL database"""
+        connection = None
+        try:
+            # MySQL configuration
+            mysql_config = {
+                'host': os.getenv('MYSQL_HOST'),
+                'user': os.getenv('MYSQL_USER'),
+                'password': os.getenv('MYSQL_PASSWORD'),
+                'database': os.getenv('MYSQL_DATABASE'),
+                'charset': 'utf8mb4',
+                'autocommit': True
+            }
+            
+            # Add port if provided
+            if os.getenv('MYSQL_PORT'):
+                mysql_config['port'] = int(os.getenv('MYSQL_PORT'))
+            
+            # Add SSL if required
+            if os.getenv('MYSQL_SSL', '').lower() == 'true':
+                mysql_config['ssl'] = {'check_hostname': False}
+            
+            connection = pymysql.connect(**mysql_config)
+            cursor = connection.cursor()
+            
+            insert_query = """
+                INSERT INTO predictions (
+                    booking_id, predicted_canceled, cancellation_probability,
+                    not_cancelled_probability, features_used, model_version, notes
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """
+            
+            values = (
+                booking_id,
+                prediction.get('predicted_canceled', False),
+                float(prediction.get('cancellation_probability', 0)),
+                float(prediction.get('not_cancelled_probability', 0)),
+                prediction.get('features_used', 0),
+                prediction.get('model_version', None),
+                prediction.get('note', None)
+            )
+            
+            cursor.execute(insert_query, values)
+            print(f"  ✓ Saved to MySQL (prediction_id: {cursor.lastrowid})")
+            
+        except Exception as e:
+            print(f"  ✗ MySQL save failed: {e}")
+        finally:
+            if connection:
+                connection.close()
+    
+    def _log_to_mongodb(self, booking_id: int, prediction: Dict):
+        """Save prediction to MongoDB database"""
+        try:
+            # MongoDB configuration
+            mongo_uri = os.getenv('MONGO_URI')
+            if not mongo_uri:
+                mongo_host = os.getenv('MONGO_HOST', 'localhost')
+                mongo_port = int(os.getenv('MONGO_PORT', 27017))
+                mongo_uri = f"mongodb://{mongo_host}:{mongo_port}"
+            
+            mongo_database = os.getenv('MONGO_DATABASE', 'hotel_booking_db')
+            
+            client = MongoClient(mongo_uri)
+            db = client[mongo_database]
+            predictions_collection = db['predictions']
+            
+            # Create prediction document
+            prediction_doc = {
+                'booking_id': booking_id,
+                'predicted_canceled': prediction.get('predicted_canceled', False),
+                'cancellation_probability': float(prediction.get('cancellation_probability', 0)),
+                'not_cancelled_probability': float(prediction.get('not_cancelled_probability', 0)),
+                'features_used': prediction.get('features_used', 0),
+                'model_version': prediction.get('model_version', None),
+                'metadata': {
+                    'created_at': datetime.now(),
+                    'notes': prediction.get('note', None)
+                }
+            }
+            
+            result = predictions_collection.insert_one(prediction_doc)
+            print(f"  ✓ Saved to MongoDB (id: {result.inserted_id})")
+            
+            client.close()
+            
+        except Exception as e:
+            print(f"  ✗ MongoDB save failed: {e}")
     
     def batch_predict(self, bookings: List[Dict]) -> List[Dict]:
         """

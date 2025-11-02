@@ -13,8 +13,8 @@ Before starting, ensure you have:
 
 ```bash
 # Clone the repository
-git clone <your-repo-url>
-cd ml-group-1-drafttt
+git clone git@github.com:ernesteNtezirizaza/Group1_Database_Prediction_Pipeline_Formative1.git
+cd Group1_Database_Prediction_Pipeline_Formative1
 
 # Run setup script (if on Linux/Mac)
 ./setup.sh
@@ -67,14 +67,14 @@ python scripts/load_data_mongodb.py hotel_bookings.csv
 ### Step 5: Train ML Model
 
 ```bash
-python train_model.py
+python scripts/train_model.py
 ```
 
 This will create:
-- `cancellation_model.pkl`
-- `feature_preprocessor.pkl`
-- `meal_encoder.pkl`
-- `deposit_encoder.pkl`
+- `models/cancellation_model.pkl`
+- `models/feature_preprocessor.pkl`
+- `models/meal_encoder.pkl`
+- `models/deposit_encoder.pkl`
 
 ### Step 6: Start API Server
 
@@ -96,13 +96,13 @@ The API will be available at:
 
 Open a new terminal and run:
 ```bash
-python test_api.py
+python tests/test_api.py
 ```
 
 ### Step 8: Run Predictions
 
 ```bash
-python prediction_script.py
+python scripts/prediction_script.py
 ```
 
 This will:
@@ -138,7 +138,7 @@ python load_data_mysql.py hotel_bookings.csv
 ### Issue: "Model not found"
 **Solution**: Train the model first
 ```bash
-python train_model.py
+python scripts/train_model.py
 ```
 
 ## Verifying Installation

@@ -144,18 +144,18 @@ def main():
     model, X_test, y_test = train_model(X, y)
     
     # Save model
-    model_path = 'cancellation_model.pkl'
+    model_path = 'models/cancellation_model.pkl'
     joblib.dump(model, model_path)
     print(f"\nModel saved to {model_path}")
     
     # Save preprocessor separately (already included in pipeline)
-    preprocessor_path = 'feature_preprocessor.pkl'
+    preprocessor_path = 'models/feature_preprocessor.pkl'
     joblib.dump(model.named_steps['scaler'], preprocessor_path)
     print(f"Preprocessor saved to {preprocessor_path}")
     
     # Save encoders
-    joblib.dump(le_meal, 'meal_encoder.pkl')
-    joblib.dump(le_deposit, 'deposit_encoder.pkl')
+    joblib.dump(le_meal, 'models/meal_encoder.pkl')
+    joblib.dump(le_deposit, 'models/deposit_encoder.pkl')
     print("Encoders saved")
     
     print("\nTraining completed successfully!")

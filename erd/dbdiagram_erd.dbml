@@ -1,0 +1,112 @@
+// Hotel Booking Database - dbdiagram.io ERD
+// Copy this code to https://dbdiagram.io to generate the ERD diagram
+
+Project hotel_booking_db {
+  database_type: 'MySQL'
+  Note: 'Hotel Booking Database with ML Prediction Tracking'
+}
+
+// Lookup Table: Hotels
+Table hotels {
+  hotel_id int [pk, increment, note: 'Primary Key']
+  hotel_name varchar(50) [unique, not null]
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+  
+  Note: 'Lookup table for hotel information'
+}
+
+// Lookup Table: Guests
+Table guests {
+  guest_id int [pk, increment, note: 'Primary Key']
+  country varchar(3) [not null]
+  is_repeated_guest boolean [default: false]
+  customer_type varchar(20) [not null]
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+  
+  Note: 'Stores guest/customer information'
+}
+
+// Main Table: Bookings
+Table bookings {
+  booking_id int [pk, increment, note: 'Primary Key']
+  hotel_id int [ref: > hotels.hotel_id, note: 'Foreign Key to hotels']
+  guest_id int [ref: > guests.guest_id, note: 'Foreign Key to guests']
+  lead_time int [not null]
+  arrival_date_year int [not null]
+  arrival_date_month varchar(20) [not null]
+  arrival_date_week_number int [not null]
+  arrival_date_day_of_month int [not null]
+  stays_in_weekend_nights int [default: 0]
+  stays_in_week_nights int [default: 0]
+  adults int [not null]
+  children int [default: 0]
+  babies int [default: 0]
+  meal varchar(20) [not null]
+  market_segment varchar(50) [not null]
+  distribution_channel varchar(50) [not null]
+  previous_cancellations int [default: 0]
+  previous_bookings_not_canceled int [default: 0]
+  reserved_room_type varchar(1) [not null]
+  assigned_room_type varchar(1) [not null]
+  booking_changes int [default: 0]
+  deposit_type varchar(20) [not null]
+  agent int
+  company int
+  days_in_waiting_list int [default: 0]
+  adr decimal(10,2) [not null, note: 'Average Daily Rate']
+  required_car_parking_spaces int [default: 0]
+  total_of_special_requests int [default: 0]
+  is_canceled boolean [default: false]
+  reservation_status varchar(20) [not null]
+  reservation_status_date date
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+  
+  indexes {
+    hotel_id [name: 'idx_hotel_id']
+    guest_id [name: 'idx_guest_id']
+    is_canceled [name: 'idx_is_canceled']
+    reservation_status [name: 'idx_reservation_status']
+    arrival_date_year [name: 'idx_arrival_date_year']
+  }
+  
+  Note: 'Main table storing booking information'
+}
+
+// Log Table: Booking Logs
+Table booking_logs {
+  log_id int [pk, increment, note: 'Primary Key']
+  booking_id int [ref: > bookings.booking_id, note: 'Foreign Key to bookings']
+  action varchar(20) [not null, note: 'INSERT, UPDATE, DELETE']
+  old_status varchar(20)
+  new_status varchar(20)
+  timestamp timestamp [default: `CURRENT_TIMESTAMP`]
+  
+  indexes {
+    booking_id [name: 'idx_booking_id']
+    timestamp [name: 'idx_timestamp']
+  }
+  
+  Note: 'Automated logging table for trigger-based audit trail'
+}
+
+// ML/Analytics Table: Predictions
+Table predictions {
+  prediction_id int [pk, increment, note: 'Primary Key']
+  booking_id int [ref: > bookings.booking_id, note: 'Foreign Key to bookings']
+  predicted_canceled boolean [not null]
+  cancellation_probability decimal(5,4) [not null]
+  not_cancelled_probability decimal(5,4) [not null]
+  features_used int [default: 0]
+  model_version varchar(50)
+  prediction_timestamp timestamp [default: `CURRENT_TIMESTAMP`]
+  notes text
+  
+  indexes {
+    booking_id [name: 'idx_booking_id']
+    predicted_canceled [name: 'idx_predicted_canceled']
+    prediction_timestamp [name: 'idx_prediction_timestamp']
+  }
+  
+  Note: 'ML prediction results for booking cancellations'
+}
+

@@ -543,3 +543,107 @@ async def delete_booking_mongo(booking_id: str):
         raise
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"MongoDB error: {str(e)}")
+
+
+# =====================================================
+# PREDICTION LOGS ENDPOINTS
+# =====================================================
+
+@router.get("/predictions/logs")
+async def get_prediction_logs_mongo(skip: int = 0, limit: int = 100, 
+                                    booking_id: Optional[str] = None,
+                                    predicted_canceled: Optional[bool] = None):
+    """Get prediction logs from MongoDB with optional filtering"""
+    try:
+        mongo_client.server_info()
+        predictions_collection = mongo_db['predictions']
+        
+        # Build query filter
+        query_filter = {}
+        
+        if booking_id is not None:
+            query_filter['booking_id'] = int(booking_id) if isinstance(booking_id, str) and booking_id.isdigit() else booking_id
+        
+        if predicted_canceled is not None:
+            query_filter['predicted_canceled'] = predicted_canceled
+        
+        # Query with pagination
+        predictions = predictions_collection.find(query_filter).sort('metadata.created_at', -1).skip(skip).limit(limit)
+        
+        result = []
+        for pred in predictions:
+            pred['prediction_id'] = str(pred['_id'])
+            del pred['_id']
+            
+            # Convert datetime to ISO string if needed
+            if 'metadata' in pred and 'created_at' in pred['metadata']:
+                if isinstance(pred['metadata']['created_at'], datetime):
+                    pred['metadata']['created_at'] = pred['metadata']['created_at'].isoformat()
+            
+            result.append(pred)
+        
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"MongoDB error: {str(e)}")
+
+
+@router.get("/predictions/logs/{prediction_id}")
+async def get_prediction_log_mongo(prediction_id: str):
+    """Get a specific prediction log by ID from MongoDB"""
+    try:
+        mongo_client.server_info()
+        predictions_collection = mongo_db['predictions']
+        
+        try:
+            prediction = predictions_collection.find_one({"_id": ObjectId(prediction_id)})
+        except:
+            raise HTTPException(status_code=400, detail="Invalid prediction ID format")
+        
+        if not prediction:
+            raise HTTPException(status_code=404, detail="Prediction not found")
+        
+        prediction['prediction_id'] = str(prediction['_id'])
+        del prediction['_id']
+        
+        # Convert datetime to ISO string if needed
+        if 'metadata' in prediction and 'created_at' in prediction['metadata']:
+            if isinstance(prediction['metadata']['created_at'], datetime):
+                prediction['metadata']['created_at'] = prediction['metadata']['created_at'].isoformat()
+        
+        return prediction
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"MongoDB error: {str(e)}")
+
+
+@router.get("/bookings/{booking_id}/predictions")
+async def get_booking_predictions_mongo(booking_id: str):
+    """Get all predictions for a specific booking from MongoDB"""
+    try:
+        mongo_client.server_info()
+        predictions_collection = mongo_db['predictions']
+        
+        # Convert booking_id to int if it's numeric
+        try:
+            booking_id_int = int(booking_id)
+        except ValueError:
+            booking_id_int = booking_id
+        
+        predictions = predictions_collection.find({'booking_id': booking_id_int}).sort('metadata.created_at', -1)
+        
+        result = []
+        for pred in predictions:
+            pred['prediction_id'] = str(pred['_id'])
+            del pred['_id']
+            
+            # Convert datetime to ISO string if needed
+            if 'metadata' in pred and 'created_at' in pred['metadata']:
+                if isinstance(pred['metadata']['created_at'], datetime):
+                    pred['metadata']['created_at'] = pred['metadata']['created_at'].isoformat()
+            
+            result.append(pred)
+        
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"MongoDB error: {str(e)}")

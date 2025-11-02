@@ -1,7 +1,7 @@
 # Hotel Booking Database Schema Design
 
 ## ERD Diagram Overview
-The database is designed with 4 main tables following 3NF normalization principles.
+The database is designed with 5 main tables following 3NF normalization principles, including ML prediction tracking.
 
 ## Table Structures
 
@@ -63,6 +63,18 @@ Automated logging table for triggers
 - `new_status` (VARCHAR(20), NULL)
 - `timestamp` (TIMESTAMP, DEFAULT CURRENT_TIMESTAMP)
 
+### 5. **predictions** Table
+ML prediction results for bookings
+- `prediction_id` (INT, PRIMARY KEY, AUTO_INCREMENT)
+- `booking_id` (INT, FOREIGN KEY -> bookings.booking_id)
+- `predicted_canceled` (BOOLEAN, NOT NULL)
+- `cancellation_probability` (DECIMAL(5,4), NOT NULL)
+- `not_cancelled_probability` (DECIMAL(5,4), NOT NULL)
+- `features_used` (INT, DEFAULT 0)
+- `model_version` (VARCHAR(50), NULL)
+- `prediction_timestamp` (TIMESTAMP, DEFAULT CURRENT_TIMESTAMP)
+- `notes` (TEXT, NULL)
+
 ## Stored Procedures
 
 ### 1. `sp_validate_booking`
@@ -98,6 +110,9 @@ Logs new bookings
 - Index on `bookings.is_canceled`
 - Index on `bookings.reservation_status`
 - Index on `booking_logs.booking_id`
+- Index on `predictions.booking_id`
+- Index on `predictions.predicted_canceled`
+- Index on `predictions.prediction_timestamp`
 
 ## MongoDB Collections Design
 
@@ -186,6 +201,23 @@ Logs new bookings
 }
 ```
 
+### Collection 4: **predictions** (ML Prediction Results)
+```json
+{
+  "prediction_id": "507f1f77bcf86cd799439011",
+  "booking_id": 1,
+  "predicted_canceled": false,
+  "cancellation_probability": 0.2356,
+  "not_cancelled_probability": 0.7644,
+  "features_used": 16,
+  "model_version": "v1.0.0",
+  "metadata": {
+    "created_at": "2024-01-01T00:00:00Z",
+    "notes": "High confidence prediction"
+  }
+}
+```
+
 ## Rationale for Design
 
 1. **Normalization**: The schema follows 3NF by separating hotels, guests, and bookings into distinct tables to avoid data redundancy.
@@ -199,3 +231,29 @@ Logs new bookings
 5. **Indexing**: Strategic indexes improve query performance for common operations like searching by status or hotel.
 
 6. **ML-Ready**: The schema preserves all features needed for machine learning predictions including booking patterns, guest history, and hotel characteristics.
+
+7. **Prediction Tracking**: The predictions table stores ML model outputs, allowing for:
+   - Model performance analysis over time
+   - Prediction history tracking per booking
+   - A/B testing different model versions
+   - Audit trail for ML decision-making
+
+## ERD Generation Tools
+
+### dbdiagram.io Code
+To generate the ERD diagram using dbdiagram.io, copy the code from `erd/dbdiagram_erd.dbml` and paste it at https://dbdiagram.io
+
+The dbml file contains:
+- All 5 tables with their complete schema
+- Foreign key relationships
+- Indexes
+- Field descriptions and notes
+- Relationship annotations
+
+### Python Script
+To generate the ERD using Python matplotlib, run:
+```bash
+python erd/generate_erd.py
+```
+
+This will create `erd/ERD_Diagram.png` with a visual representation of all tables and relationships.
