@@ -7,7 +7,7 @@ import requests
 import json
 from datetime import datetime
 
-BASE_URL = "http://localhost:8000"
+BASE_URL = "https://group1-database-prediction-pipeline.onrender.com"
 
 def test_health_check():
     """Test health check endpoint"""
@@ -241,7 +241,7 @@ def main():
     print("=" * 60)
     print("API Endpoint Testing")
     print("=" * 60)
-    print("Make sure the FastAPI server is running on http://localhost:8000")
+    print("Make sure the FastAPI server is running on https://group1-database-prediction-pipeline.onrender.com")
     
     tests_passed = 0
     tests_total = 10

@@ -88,9 +88,9 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 The API will be available at:
-- **API**: http://localhost:8000
-- **Docs**: http://localhost:8000/docs
-- **Health**: http://localhost:8000/health
+- **API**: https://group1-database-prediction-pipeline.onrender.com
+- **Docs**: https://group1-database-prediction-pipeline.onrender.com/docs
+- **Health**: https://group1-database-prediction-pipeline.onrender.com/health
 
 ### Step 7: Test API
 
@@ -156,7 +156,7 @@ mysql -u root -p -e "USE hotel_booking_db; SHOW TABLES;"
 mongosh --eval "db.stats()"
 
 # 4. Check API is running
-curl http://localhost:8000/health
+curl https://group1-database-prediction-pipeline.onrender.com/health
 
 # 5. Run all tests
 python test_api.py
@@ -164,7 +164,7 @@ python test_api.py
 
 ## Next Steps
 
-1. Explore API documentation: http://localhost:8000/docs
+1. Explore API documentation: https://group1-database-prediction-pipeline.onrender.com/docs
 2. Try different endpoints
 3. Run predictions on new data
 4. Analyze prediction results
@@ -200,7 +200,7 @@ ml-group-1-drafttt/
 
 1. Check `README.md` for detailed documentation
 2. Check `PROJECT_CHECKLIST.md` for requirements
-3. Review API docs at http://localhost:8000/docs
+3. Review API docs at https://group1-database-prediction-pipeline.onrender.com/docs
 4. Contact team members
 
 ## Key Files

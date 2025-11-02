@@ -92,7 +92,7 @@ MONGO_PORT=your_port_here
 MONGO_DATABASE=your_database_here
 
 # API Configuration
-API_BASE_URL=http://localhost:8000
+API_BASE_URL=https://group1-database-prediction-pipeline.onrender.com
 EOL
     echo -e "${GREEN}.env file created${NC}"
     echo -e "${YELLOW}Please update .env with your database credentials${NC}"

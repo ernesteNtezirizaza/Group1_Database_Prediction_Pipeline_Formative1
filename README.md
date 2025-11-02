@@ -157,7 +157,7 @@ MONGO_HOST=localhost
 MONGO_PORT=27017
 MONGO_DATABASE=hotel_booking_db
 
-API_BASE_URL=http://localhost:8000
+API_BASE_URL=https://group1-database-prediction-pipeline.onrender.com
 ```
 
 ### 2. Load Data
@@ -192,9 +192,9 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 API will be available at:
-- API Base: http://localhost:8000
-- Interactive Docs: http://localhost:8000/docs
-- OpenAPI Schema: http://localhost:8000/openapi.json
+- API Base: https://group1-database-prediction-pipeline.onrender.com
+- Interactive Docs: https://group1-database-prediction-pipeline.onrender.com/docs
+- OpenAPI Schema: https://group1-database-prediction-pipeline.onrender.com/openapi.json
 
 ### 5. Run Prediction Script
 
@@ -307,7 +307,7 @@ This will:
 
 **Create a Guest**:
 ```bash
-curl -X POST "http://localhost:8000/api/v1/guests" \
+curl -X POST "https://group1-database-prediction-pipeline.onrender.com/api/v1/guests" \
   -H "Content-Type: application/json" \
   -d '{
     "country": "USA",
@@ -318,12 +318,12 @@ curl -X POST "http://localhost:8000/api/v1/guests" \
 
 **Get All Bookings**:
 ```bash
-curl "http://localhost:8000/api/v1/bookings?limit=10&skip=0"
+curl "https://group1-database-prediction-pipeline.onrender.com/api/v1/bookings?limit=10&skip=0"
 ```
 
 **Get Statistics**:
 ```bash
-curl "http://localhost:8000/api/v1/statistics"
+curl "https://group1-database-prediction-pipeline.onrender.com/api/v1/statistics"
 ```
 
 **Make Predictions**:
@@ -333,17 +333,17 @@ python scripts/prediction_script.py
 
 **Get Prediction Logs**:
 ```bash
-curl "http://localhost:8000/api/v1/predictions/logs?limit=10"
+curl "https://group1-database-prediction-pipeline.onrender.com/api/v1/predictions/logs?limit=10"
 ```
 
 **Get Predictions for a Booking**:
 ```bash
-curl "http://localhost:8000/api/v1/bookings/1/predictions"
+curl "https://group1-database-prediction-pipeline.onrender.com/api/v1/bookings/1/predictions"
 ```
 
 **MongoDB Example - Create Guest**:
 ```bash
-curl -X POST "http://localhost:8000/api/v1/mongo/guests" \
+curl -X POST "https://group1-database-prediction-pipeline.onrender.com/api/v1/mongo/guests" \
   -H "Content-Type: application/json" \
   -d '{
     "country": "USA",
@@ -354,7 +354,7 @@ curl -X POST "http://localhost:8000/api/v1/mongo/guests" \
 
 **MongoDB Example - Get All Bookings**:
 ```bash
-curl "http://localhost:8000/api/v1/mongo/bookings?limit=10&skip=0"
+curl "https://group1-database-prediction-pipeline.onrender.com/api/v1/mongo/bookings?limit=10&skip=0"
 ```
 
 ## Project Structure

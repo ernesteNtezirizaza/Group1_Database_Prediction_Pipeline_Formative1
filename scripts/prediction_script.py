@@ -19,7 +19,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # API Configuration
-API_BASE_URL = os.getenv('API_BASE_URL', 'http://localhost:8000')
+API_BASE_URL = os.getenv('API_BASE_URL', 'https://group1-database-prediction-pipeline.onrender.com')
 
 # Model configuration
 MODEL_PATH = 'models/cancellation_model.pkl'
