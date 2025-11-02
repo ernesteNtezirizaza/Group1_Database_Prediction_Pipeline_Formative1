@@ -76,4 +76,45 @@ class BookingPredictor:
         except requests.exceptions.RequestException as e:
             print(f"Error fetching bookings: {e}")
             return []
+    
+    def prepare_features(self, booking: Dict) -> np.ndarray:
+        """
+        Prepare features from booking data for ML prediction
+        """
+        # Select important features for cancellation prediction
+        features = [
+            booking.get('lead_time', 0),
+            booking.get('arrival_date_year', 2015),
+            booking.get('stays_in_weekend_nights', 0),
+            booking.get('stays_in_week_nights', 0),
+            booking.get('adults', 0),
+            booking.get('children', 0),
+            booking.get('babies', 0),
+            booking.get('previous_cancellations', 0),
+            booking.get('previous_bookings_not_canceled', 0),
+            booking.get('booking_changes', 0),
+            booking.get('days_in_waiting_list', 0),
+            booking.get('adr', 0),
+            booking.get('required_car_parking_spaces', 0),
+            booking.get('total_of_special_requests', 0),
+        ]
+        
+        # Add categorical encodings
+        # Meal types (BB, HB, FB, SC, Undefined)
+        meal_map = {'BB': 0, 'HB': 1, 'FB': 2, 'SC': 3, 'Undefined': 4}
+        meal = booking.get('meal', 'BB')
+        features.append(meal_map.get(meal, 4))
+        
+        # Deposit type
+        deposit_map = {'No Deposit': 0, 'Non Refund': 1, 'Refundable': 2}
+        deposit = booking.get('deposit_type', 'No Deposit')
+        features.append(deposit_map.get(deposit, 0))
+        
+        # Convert to numpy array
+        feature_array = np.array(features).reshape(1, -1)
+        
+        # Handle missing values
+        feature_array = np.nan_to_num(feature_array, nan=0.0, posinf=0.0, neginf=0.0)
+        
+        return feature_array
 
