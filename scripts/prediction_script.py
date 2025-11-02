@@ -28,3 +28,33 @@ class BookingPredictor:
         self.api_url = api_url
         self.model = None
         self.preprocessor = None
+        self._load_model()
+    
+    def _load_model(self):
+        """Load the trained ML model and preprocessor"""
+        try:
+            if os.path.exists(MODEL_PATH):
+                self.model = joblib.load(MODEL_PATH)
+                print(f"Model loaded from {MODEL_PATH}")
+            
+            if os.path.exists(PREPROCESSOR_PATH):
+                self.preprocessor = joblib.load(PREPROCESSOR_PATH)
+                print(f"Preprocessor loaded from {PREPROCESSOR_PATH}")
+        except Exception as e:
+            print(f"Warning: Could not load model files: {e}")
+            print("Will create dummy model for demonstration")
+            self._create_dummy_model()
+    
+    def _create_dummy_model(self):
+        """Create a simple dummy model for demonstration"""
+        from sklearn.ensemble import RandomForestClassifier
+        from sklearn.pipeline import Pipeline
+        from sklearn.preprocessing import StandardScaler
+        
+        # Dummy model for demonstration
+        print("Creating dummy model...")
+        # This will be replaced with actual training in practice
+        self.model = RandomForestClassifier(n_estimators=10, random_state=42)
+        self.preprocessor = Pipeline([
+            ('scaler', StandardScaler())
+        ])
