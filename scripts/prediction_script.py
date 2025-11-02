@@ -13,3 +13,18 @@ import os
 
 # API Configuration
 API_BASE_URL = os.getenv('API_BASE_URL', 'http://localhost:8000')
+
+# Model configuration
+MODEL_PATH = 'cancellation_model.pkl'
+PREPROCESSOR_PATH = 'feature_preprocessor.pkl'
+
+
+class BookingPredictor:
+    """
+    Class to handle fetching booking data and making predictions
+    """
+    
+    def __init__(self, api_url: str = API_BASE_URL):
+        self.api_url = api_url
+        self.model = None
+        self.preprocessor = None
