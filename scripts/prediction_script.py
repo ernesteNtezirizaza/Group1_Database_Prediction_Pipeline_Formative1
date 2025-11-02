@@ -1,5 +1,6 @@
 """
 Prediction Script for Hotel Booking Cancellations
+Fetches latest booking data from API and makes predictions using ML model
 """
 
 import requests
@@ -58,3 +59,21 @@ class BookingPredictor:
         self.preprocessor = Pipeline([
             ('scaler', StandardScaler())
         ])
+    
+    def fetch_latest_bookings(self, limit: int = 10) -> List[Dict]:
+        """
+        Fetch the latest bookings from the API
+        """
+        try:
+            response = requests.get(
+                f"{self.api_url}/api/v1/bookings",
+                params={"limit": limit}
+            )
+            response.raise_for_status()
+            bookings = response.json()
+            print(f"Fetched {len(bookings)} bookings from API")
+            return bookings
+        except requests.exceptions.RequestException as e:
+            print(f"Error fetching bookings: {e}")
+            return []
+
