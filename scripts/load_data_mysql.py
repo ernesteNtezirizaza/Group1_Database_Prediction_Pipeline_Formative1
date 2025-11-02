@@ -18,6 +18,7 @@ DB_CONFIG = {
     'user': os.getenv('MYSQL_USER'),
     'password': os.getenv('MYSQL_PASSWORD'),
     'database': os.getenv('MYSQL_DATABASE'),
+    'port': int(os.getenv('MYSQL_PORT')),
     'charset': 'utf8mb4',
     'autocommit': False
 }
@@ -128,6 +129,7 @@ def load_bookings_data(file_path: str, batch_size: int = 1000):
                             stays_in_week_nights, adults, children, babies,
                             meal, market_segment, distribution_channel,
                             previous_cancellations, previous_bookings_not_canceled,
+                            reserved_room_type, assigned_room_type, booking_changes,
                             deposit_type, agent, company, days_in_waiting_list,
                             adr, required_car_parking_spaces, total_of_special_requests,
                             is_canceled, reservation_status, reservation_status_date
@@ -170,15 +172,19 @@ def load_bookings_data(file_path: str, batch_size: int = 1000):
                         clean_value(row['reservation_status_date'])
                     )
                     
+                    print(f"Booking values: {booking_values}")
                     cursor.execute(insert_query, booking_values)
                     batch_count += 1
                     total_inserted += 1
+                    
+                    print(f"Insert query: {insert_query}")
                     
                     # Commit in batches
                     if batch_count >= batch_size:
                         connection.commit()
                         print(f"Inserted {total_inserted} records so far...")
                         batch_count = 0
+                    print(f"Batch count: {batch_count}")
                         
                 except Exception as e:
                     print(f"Error processing row {row_num}: {e}")

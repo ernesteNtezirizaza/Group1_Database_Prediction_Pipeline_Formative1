@@ -20,7 +20,8 @@ MONGO_CONFIG = {
 }
 
 # Initialize MongoDB client
-mongo_client = MongoClient(MONGO_CONFIG['host'], MONGO_CONFIG['port'])
+MONGO_URI = os.getenv('MONGO_URI', f"mongodb://{MONGO_CONFIG['host']}:{MONGO_CONFIG['port']}")
+mongo_client = MongoClient(MONGO_URI)
 mongo_db = mongo_client[MONGO_CONFIG['database']]
 
 # =====================================================

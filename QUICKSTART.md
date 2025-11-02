@@ -43,24 +43,24 @@ MONGO_DATABASE=your_database_here
 ### Step 3: Setup MySQL Database
 
 ```bash
-mysql -u root -p < setup_mysql_database.sql
+mysql -u root -p < database setup/setup_mysql_database.sql
 ```
 
 Or manually in MySQL:
 ```sql
-source setup_mysql_database.sql;
+source ./database setup/setup_mysql_database.sql;
 ```
 
 ### Step 4: Load Data
 
 **Load into MySQL:**
 ```bash
-python load_data_mysql.py hotel_bookings.csv
+python scripts/load_data_mysql.py hotel_bookings.csv
 ```
 
 **Load into MongoDB:**
 ```bash
-python load_data_mongodb.py hotel_bookings.csv
+python scripts/load_data_mongodb.py hotel_bookings.csv
 ```
 
 ### Step 5: Train ML Model

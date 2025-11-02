@@ -2,9 +2,9 @@
 -- This script creates the database, tables, stored procedures, triggers, and indexes
 
 -- Drop database if exists and create new one
-DROP DATABASE IF EXISTS hotel_booking_db;
-CREATE DATABASE hotel_booking_db;
-USE hotel_booking_db;
+-- DROP DATABASE IF EXISTS defaultdb;
+-- CREATE DATABASE defaultdb;
+USE defaultdb;
 
 -- =====================================================
 -- TABLE CREATION
@@ -197,28 +197,28 @@ DELIMITER ;
 -- =====================================================
 
 -- Insert sample hotels
-INSERT INTO hotels (hotel_name) VALUES ('Resort Hotel');
-INSERT INTO hotels (hotel_name) VALUES ('City Hotel');
+-- INSERT INTO hotels (hotel_name) VALUES ('Resort Hotel');
+-- INSERT INTO hotels (hotel_name) VALUES ('City Hotel');
 
--- Insert sample guests
-INSERT INTO guests (country, is_repeated_guest, customer_type) VALUES ('PRT', FALSE, 'Transient');
-INSERT INTO guests (country, is_repeated_guest, customer_type) VALUES ('GBR', FALSE, 'Transient');
-INSERT INTO guests (country, is_repeated_guest, customer_type) VALUES ('ESP', TRUE, 'Contract');
+-- -- Insert sample guests
+-- INSERT INTO guests (country, is_repeated_guest, customer_type) VALUES ('PRT', FALSE, 'Transient');
+-- INSERT INTO guests (country, is_repeated_guest, customer_type) VALUES ('GBR', FALSE, 'Transient');
+-- INSERT INTO guests (country, is_repeated_guest, customer_type) VALUES ('ESP', TRUE, 'Contract');
 
--- Insert sample booking
-INSERT INTO bookings (
-    hotel_id, guest_id, lead_time, arrival_date_year, arrival_date_month,
-    arrival_date_week_number, arrival_date_day_of_month, stays_in_weekend_nights,
-    stays_in_week_nights, adults, children, babies, meal, market_segment,
-    distribution_channel, previous_cancellations, previous_bookings_not_canceled,
-    reserved_room_type, assigned_room_type, booking_changes, deposit_type,
-    agent, company, days_in_waiting_list, adr, required_car_parking_spaces,
-    total_of_special_requests, is_canceled, reservation_status, reservation_status_date
-) VALUES (
-    1, 1, 342, 2015, 'July', 27, 1, 0, 0, 2, 0, 0, 'BB', 'Direct',
-    'Direct', 0, 0, 'C', 'C', 3, 'No Deposit', NULL, NULL, 0,
-    0.00, 0, 0, FALSE, 'Check-Out', '2015-07-01'
-);
+-- -- Insert sample booking
+-- INSERT INTO bookings (
+--     hotel_id, guest_id, lead_time, arrival_date_year, arrival_date_month,
+--     arrival_date_week_number, arrival_date_day_of_month, stays_in_weekend_nights,
+--     stays_in_week_nights, adults, children, babies, meal, market_segment,
+--     distribution_channel, previous_cancellations, previous_bookings_not_canceled,
+--     reserved_room_type, assigned_room_type, booking_changes, deposit_type,
+--     agent, company, days_in_waiting_list, adr, required_car_parking_spaces,
+--     total_of_special_requests, is_canceled, reservation_status, reservation_status_date
+-- ) VALUES (
+--     1, 1, 342, 2015, 'July', 27, 1, 0, 0, 2, 0, 0, 'BB', 'Direct',
+--     'Direct', 0, 0, 'C', 'C', 3, 'No Deposit', NULL, NULL, 0,
+--     0.00, 0, 0, FALSE, 'Check-Out', '2015-07-01'
+-- );
 
 -- =====================================================
 -- VERIFICATION QUERIES
@@ -229,7 +229,7 @@ SHOW TABLES;
 
 -- Check foreign key constraints
 SELECT * FROM information_schema.KEY_COLUMN_USAGE
-WHERE TABLE_SCHEMA = 'hotel_booking_db'
+WHERE TABLE_SCHEMA = 'defaultdb'
 AND TABLE_NAME IN ('bookings', 'booking_logs')
 AND CONSTRAINT_NAME LIKE 'fk%';
 
@@ -237,7 +237,7 @@ AND CONSTRAINT_NAME LIKE 'fk%';
 SHOW TRIGGERS;
 
 -- Check stored procedures
-SHOW PROCEDURE STATUS WHERE db = 'hotel_booking_db';
+SHOW PROCEDURE STATUS WHERE db = 'defaultdb';
 
 -- Test stored procedure
 CALL sp_validate_booking(50, 2, 'Check-Out', @is_valid, @error_message);

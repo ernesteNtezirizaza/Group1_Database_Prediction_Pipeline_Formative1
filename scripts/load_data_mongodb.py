@@ -8,7 +8,7 @@ from pymongo import MongoClient
 from typing import Dict
 import sys
 import os
-import os
+from datetime import datetime, timezone
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -29,7 +29,7 @@ def clean_value(value: str):
     return value.strip()
 
 
-def insert_hotel(client, hotel_name: str, hotels_collection) -> int:
+def insert_hotel(hotel_name: str, hotels_collection) -> int:
     """Insert or get hotel and return its ID"""
     hotel = hotels_collection.find_one({"hotel_name": hotel_name})
     
@@ -37,7 +37,7 @@ def insert_hotel(client, hotel_name: str, hotels_collection) -> int:
         result = hotels_collection.insert_one({
             "hotel_name": hotel_name,
             "metadata": {
-                "created_at": client.datetime.utcnow() if hasattr(client, 'datetime') else None
+                "created_at": datetime.now(timezone.utc)
             }
         })
         return result.inserted_id
@@ -45,7 +45,7 @@ def insert_hotel(client, hotel_name: str, hotels_collection) -> int:
         return hotel["_id"]
 
 
-def insert_guest(client, country: str, is_repeated_guest: str, 
+def insert_guest(country: str, is_repeated_guest: str, 
                  customer_type: str, guests_collection) -> int:
     """Insert or get guest and return its ID"""
     is_repeated = True if is_repeated_guest == '1' else False
@@ -62,7 +62,7 @@ def insert_guest(client, country: str, is_repeated_guest: str,
             "is_repeated_guest": is_repeated,
             "customer_type": customer_type,
             "metadata": {
-                "created_at": client.datetime.utcnow() if hasattr(client, 'datetime') else None
+                "created_at": datetime.now(timezone.utc)
             }
         })
         return result.inserted_id
@@ -79,7 +79,8 @@ def load_bookings_data(file_path: str):
     
     try:
         # Connect to MongoDB
-        client = MongoClient(MONGO_CONFIG['host'], MONGO_CONFIG['port'])
+        MONGO_URI = os.getenv('MONGO_URI', f"mongodb://{MONGO_CONFIG['host']}:{MONGO_CONFIG['port']}")
+        client = MongoClient(MONGO_URI)
         db = client[MONGO_CONFIG['database']]
         
         print(f"Connected to MongoDB database: {MONGO_CONFIG['database']}")
@@ -106,13 +107,13 @@ def load_bookings_data(file_path: str):
                 try:
                     # Get or create hotel
                     hotel_name = clean_value(row['hotel'])
-                    hotel_id = insert_hotel(client, hotel_name, hotels_collection)
+                    hotel_id = insert_hotel(hotel_name, hotels_collection)
                     
                     # Get or create guest
                     country = clean_value(row['country']) or 'UNK'
                     is_repeated = clean_value(row['is_repeated_guest'])
                     customer_type = clean_value(row['customer_type'])
-                    guest_id = insert_guest(client, country, is_repeated, customer_type, guests_collection)
+                    guest_id = insert_guest(country, is_repeated, customer_type, guests_collection)
                     
                     # Build booking document (denormalized)
                     booking_doc = {
@@ -168,7 +169,7 @@ def load_bookings_data(file_path: str):
                             "previous_bookings_not_canceled": int(clean_value(row['previous_bookings_not_canceled']) or 0)
                         },
                         "metadata": {
-                            "created_at": None  # Can be set to datetime if needed
+                            "created_at": datetime.now(timezone.utc)
                         }
                     }
                     
@@ -184,11 +185,11 @@ def load_bookings_data(file_path: str):
                     print(f"Error processing row {row_num}: {e}")
                     continue
         
-        print(f"\nData loading completed!")
+        print("\nData loading completed!")
         print(f"Total bookings inserted: {total_inserted}")
         
         # Display statistics
-        print(f"\nCollection Statistics:")
+        print("\nCollection Statistics:")
         print(f"Total hotels: {hotels_collection.count_documents({})}")
         print(f"Total guests: {guests_collection.count_documents({})}")
         print(f"Total bookings: {bookings_collection.count_documents({})}")
