@@ -148,14 +148,14 @@ MongoDB will automatically create the database when you first insert data.
 Create a `.env` file in the project root:
 
 ```env
-MYSQL_HOST=localhost
-MYSQL_USER=root
+MYSQL_HOST=your_host
+MYSQL_USER=your_user
 MYSQL_PASSWORD=your_password
-MYSQL_DATABASE=hotel_booking_db
+MYSQL_DATABASE=your_database
 
-MONGO_HOST=localhost
-MONGO_PORT=27017
-MONGO_DATABASE=hotel_booking_db
+MONGO_HOST=your_host
+MONGO_PORT=your_port
+MONGO_DATABASE=your_database
 
 API_BASE_URL=https://group1-database-prediction-pipeline.onrender.com
 ```
