@@ -23,6 +23,7 @@ cd ml-group-1-drafttt
 python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
+```
 
 ### Step 2: Configure Database
 

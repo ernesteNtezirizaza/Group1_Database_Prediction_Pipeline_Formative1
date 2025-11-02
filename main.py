@@ -6,6 +6,8 @@ Handles both MySQL and MongoDB databases
 from fastapi import FastAPI
 from datetime import datetime
 import os
+from dotenv import load_dotenv
+load_dotenv()
 
 # Import API routers
 from api.mysql_api import router as mysql_router
