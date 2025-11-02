@@ -164,4 +164,49 @@ class BookingPredictor:
                 'booking_id': booking.get('booking_id'),
                 'error': str(e)
             }
+    
+    def log_prediction_to_db(self, booking_id: int, prediction: Dict):
+        """
+        Log prediction result to database
+        This would typically update a predictions table in the database
+        """
+        try:
+            # In a real implementation, you would:
+            # 1. Create a predictions table in the database
+            # 2. Insert the prediction result
+            # For now, we'll just print the result
+            
+            print(f"\nPrediction logged for booking {booking_id}:")
+            print(f"  Cancellation probability: {prediction.get('cancellation_probability', 0):.2%}")
+            print(f"  Predicted outcome: {'Will Cancel' if prediction.get('predicted_canceled') else 'Will NOT Cancel'}")
+            
+        except Exception as e:
+            print(f"Error logging prediction: {e}")
+    
+    def batch_predict(self, bookings: List[Dict]) -> List[Dict]:
+        """
+        Make predictions on multiple bookings
+        """
+        results = []
+        for booking in bookings:
+            prediction = self.predict(booking)
+            results.append(prediction)
+            
+            # Log to database
+            if 'booking_id' in prediction:
+                self.log_prediction_to_db(prediction['booking_id'], prediction)
+        
+        return results
+    
+    def save_predictions(self, predictions: List[Dict], filename: str = None):
+        """
+        Save predictions to JSON file
+        """
+        if filename is None:
+            filename = f"predictions_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        
+        with open(filename, 'w') as f:
+            json.dump(predictions, f, indent=2)
+        
+        print(f"\nPredictions saved to {filename}")
 
